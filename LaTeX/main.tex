@@ -178,4 +178,29 @@ Therefore, we can rewrite our observations as
 
 Since up to timesteps $i - 1$, we obtained approximations for $\alpha_j$ for all $j < i$, we could solve this quadratic equation to determine $\alpha_i$ (though we'd require knowledge of $k[0]$). Then, maybe we could try to apply control to zero out $\vec{x}$ using this approximation for $\vec{v}$?
 
+\section*{Problem Setups}
+\subsection*{Known eigenvectors, scalar control, unknown eigenvalues}
+\[
+    \vec{x}[t + 1] = \mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n} \vec{x}[t] + \mat{1 \\ 1 \\ \vdots \\ 1}u(t).
+\]
+We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce the $\lambda_i$ and apply scalar control $u(t)$ to stabilize the system.
+
+\subsection*{Unknown eigenvectors, scalar control, unknown eigenvalues}
+\[
+    \vec{x}[t + 1] = P\mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n}P^T \vec{x}[t] + \mat{1 \\ 0 \\ \vdots \\ 0}u(t).
+\]
+We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce $P$ and the $\lambda_i$ and apply scalar control $u(t)$ to stabilize the system. The eigenvector basis $P$ is orthonormal but unknown to us, and the $\lambda_i$ are in decreasing order i.e. $\lambda_1 \gg \lambda_2 \gg \ldots \gg \lambda_n$. Note that none of the $\lambda_i$ are guaranteed to be stable.
+
+\subsection*{Known eigenvectors, vector control, unknown eigenvalues}
+\[
+    \vec{x}[t + 1] = \mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n} \vec{x}[t] + \vec{u}(t).
+\]
+We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce the $\lambda_i$ and apply vector control $\vec{u}(t)$ to stabilize the system. This case seems the easiest to understand?
+
+\subsection*{Unknown eigenvectors, vector control, known eigenvalues}
+\[
+    \vec{x}[t + 1] = P\mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n}P^T \vec{x}[t] + \vec{u}(t).
+\]
+We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce $P$ and apply scalar control $u(t)$ to stabilize the system. The eigenvector basis $P$ is orthonormal but unknown to us, and the $\lambda_i$ are in decreasing order i.e. $\lambda_1 \gg \lambda_2 \gg \ldots \gg \lambda_n$. Note that all the $\lambda_i$ but $\lambda_1$ are guaranteed to be stable. This is the problem we have been working with so far.
+
 \end{document}
