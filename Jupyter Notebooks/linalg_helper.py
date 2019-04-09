@@ -67,10 +67,10 @@ def simulate_free_response(A, N, x_init):
     """
     # Do an input validation with the shape of u somewhere
     dim = A.shape[0]
-    x = np.zeros([N + 1, dim])
+    x = np.zeros([N, dim])
     x[0,:] = x_init
     # B = np.ones([1, dim])
-    for i in range(N):
+    for i in range(N-1):
         x[i+1,:] = A.dot(x[i,:])
     return x
 
