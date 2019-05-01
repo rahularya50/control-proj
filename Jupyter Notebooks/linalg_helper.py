@@ -74,6 +74,14 @@ def simulate_free_response(A, N, x_init):
         x[i+1,:] = A.dot(x[i,:])
     return x
 
+def simulate_controlled_response(A, N, x_init, law):
+    dim = A.shape[0]
+    x = np.zeros([N, dim])
+    x[0, :] = x_init
+    for i in range(N-1):
+        x[i+1, :] = A.dot(x[i,:])+law(i, x[i,:])
+    return x
+              
 #edit K, add feedback vector B
 def plot_state_trace(x):
     """
