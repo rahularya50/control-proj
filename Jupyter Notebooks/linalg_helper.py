@@ -96,3 +96,21 @@ def plot_state_trace(x):
         ax.plot(range(N), x[:, i])
         ax.set_title('State x{0}'.format(i+1))
     plt.show()
+    
+def perturb_vector(v, dot_prod, dim):
+    if np.isclose(dot_prod, 1.0):
+        return v
+    v = v.reshape((dim, 1))
+    d = make_random_direction(dim).reshape((dim, 1))
+    orth = d - v @ (d.T @ v)
+    orth = orth/np.linalg.norm(orth)
+    return dot_prod * v + np.sqrt(1.0 - dot_prod * dot_prod) * orth
+
+def make_linear_diag(big, diff, dim):
+    return np.diag([big - diff * i for i in range(dim)])
+
+def make_onebig_restsame_diag(big, small, dim):
+    return np.diag([big] + [small] * (dim - 1))
+
+def make_mult_diag(big, scale, dim):
+    return np.diag([big *(scale)**i for i in range(dim)])
