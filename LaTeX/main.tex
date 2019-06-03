@@ -95,6 +95,8 @@
 \newcommand{\softO}{\widetilde{O}}
 \newcommand{\OO}{O^*}  %or \widetilde{O}?
 
+\newcommand{\Var}[1]{\mathrm{Var}({#1})}
+
 \newcommand{\dx}{\mathrm{d}x}
 \newcommand{\dy}{\mathrm{d}y}
 \newcommand{\dz}{\mathrm{d}z}
@@ -128,6 +130,8 @@
     thick,white!20!black,mark=o,mark options=solid\\%
 }
 
+\DeclareMathOperator{\EX}{\mathbb{E}}% expected value
+
 \newcommand{\mat}[1]{\ensuremath{\begin{bmatrix}#1\end{bmatrix}}}
 \newcommand{\cat}[1]{\ensuremath{\begin{vmatrix}#1\end{vmatrix}}}
 \newcommand{\eqn}[1]{\begin{alignat*}{2}#1\end{alignat*}}
@@ -138,6 +142,7 @@
 
 \begin{document}
 
+\section*{Rahul's Strategy for learning an eigenvector provided the eigenvalue is known}
 Consider a simplification where we know the value of the maximum $\lambda$, all other eigenvalues can be treated as being close to $0$, and our random samples are one dimensional and mutually orthogonal. Let $\vec{x}[i]$ be our state after $i$ timesteps, let $\vec{u}[i]$ be the control input we apply after timestep $i$, and let $\vec{d}[i]$ be the unit vector in the direction of our measurement after timestep $i$.
 
 Let $\vec{v}$ be the direction of the unit eigenvector corresponding to $\lambda$. Therefore, we can approximate $\vec{x}[i] = k[i]\vec{v}$, where $k[i]$ is a scalar quantity, since the component of $\vec{x}[i]$ in all other directions will quickly decay to $0$. We may write our transition equation as
@@ -179,28 +184,463 @@ Therefore, we can rewrite our observations as
 Since up to timesteps $i - 1$, we obtained approximations for $\alpha_j$ for all $j < i$, we could solve this quadratic equation to determine $\alpha_i$ (though we'd require knowledge of $k[0]$). Then, maybe we could try to apply control to zero out $\vec{x}$ using this approximation for $\vec{v}$?
 
 \section*{Problem Setups}
+
+Premises which we wish to keep are that:
+\begin{enumerate}
+    \item $k$ dominant eigenvalues are significantly larger than the rest.
+    \item Observations of the state can only be made in $m$-dimensional subspaces, which we do not get to choose.
+\end{enumerate}
+
+Different problem setups include the following as choices.
+\begin{enumerate}
+    \item Known vs. unknown eigenvalues
+    \item Known vs. unknown eigenvectors
+    \item scalar vs. vector control
+    \item Known vs. unknown initial condition
+    \item Presence vs. absence of process noise
+    \item Presence vs. absence of observation noise in subspace projections
+    \item Learning, then controlling vs. Controlling to learn (if inputs change system response, does this give useful information?)
+\end{enumerate}
+
+The first 2 choices have 3 options of interest, as knowing both eigenvalues and eigenvectors leads to no new problems. There are lots of different problems possible. Some of them are below.
+
+
 \subsection*{Known eigenvectors, scalar control, unknown eigenvalues}
 \[
-    \vec{x}[t + 1] = \mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n} \vec{x}[t] + \mat{1 \\ 1 \\ \vdots \\ 1}u(t).
+    \vec{x}[t + 1] = \mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n} \vec{x}[t] + \mat{1 \\ 1 \\ \vdots \\ 1}u[t].
 \]
-We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce the $\lambda_i$ and apply scalar control $u(t)$ to stabilize the system.
+We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce the $\lambda_i$ and apply scalar control $u[t]$ to stabilize the system.
 
 \subsection*{Unknown eigenvectors, scalar control, unknown eigenvalues}
 \[
-    \vec{x}[t + 1] = P\mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n}P^T \vec{x}[t] + \mat{1 \\ 0 \\ \vdots \\ 0}u(t).
+    \vec{x}[t + 1] = P\mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n}P^T \vec{x}[t] + \mat{1 \\ 0 \\ \vdots \\ 0}u[t].
 \]
-We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce $P$ and the $\lambda_i$ and apply scalar control $u(t)$ to stabilize the system. The eigenvector basis $P$ is orthonormal but unknown to us, and the $\lambda_i$ are in decreasing order i.e. $\lambda_1 \gg \lambda_2 \gg \ldots \gg \lambda_n$. Note that none of the $\lambda_i$ are guaranteed to be stable.
+We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce symmetric $P$ and the $\lambda_i$ and apply scalar control $u[t]$ to stabilize the system. The eigenvector basis $P$ is orthonormal but unknown to us, and the $\lambda_i$ are in decreasing order i.e. $\lambda_1 \gg \lambda_2 \gg \ldots \gg \lambda_n$. Note that none of the $\lambda_i$ are guaranteed to be stable. An equivalent formulation to make this case similar to the previous one is by changing coordinates into that of $P$. What this does is the following: We no longer know our direction of influence, $\vec{\overline{b}} = P^T\vec{b}$.
+\[
+    \vec{z}[t+1] = \mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n}\vec{z}[t] + \vec{\overline{b}}u[t]
+\]
+
+This is to say that not knowing our eigenvectors is equivalent to not knowing how our input influences the system. Is it the case that our observations remain the same if we use this equivalent formulation? Probably, as we can fold into the randomness of the subspace the lack of knowledge of $P$. Is it of interest to distinguish between the randomness of $P$, and the randomness of $\vec{d}$/our observation subspace?
 
 \subsection*{Known eigenvectors, vector control, unknown eigenvalues}
 \[
-    \vec{x}[t + 1] = \mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n} \vec{x}[t] + \vec{u}(t).
+    \vec{x}[t + 1] = \mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n} \vec{x}[t] + \vec{u}[t].
 \]
-We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce the $\lambda_i$ and apply vector control $\vec{u}(t)$ to stabilize the system. This case seems the easiest to understand?
+We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce the $\lambda_i$ and apply vector control $\vec{u}[t]$ to stabilize the system. This case seems the easiest to understand? It may be the case that we are able to learn the eigenvalues after n observations of the state, or however many subspace observations give n independent pieces of information.
+
+Let us say that our subspace observations are 1-dimensional, so that we have vectors $\vec{d}[t]$. Our observations are:
+
+\[
+    \vec{x}[t]^T\vec{d}[t] = \sum_{i = 1}^n \lambda_i^tx_i[0]d_i[t]
+\]
+
+It appears there are $2n$ unknowns in which we have nonlinear equations. Making this problem linear would require asserting at minimum how many equations?
+
 
 \subsection*{Unknown eigenvectors, vector control, known eigenvalues}
 \[
-    \vec{x}[t + 1] = P\mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n}P^T \vec{x}[t] + \vec{u}(t).
+    \vec{x}[t + 1] = P\mat{\lambda_1 & 0 & \cdots & 0 \\ 0 & \lambda_2 & \cdots & 0 \\ \vdots  & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & \lambda_n}P^T \vec{x}[t] + \vec{u}[t].
 \]
-We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce $P$ and apply scalar control $u(t)$ to stabilize the system. The eigenvector basis $P$ is orthonormal but unknown to us, and the $\lambda_i$ are in decreasing order i.e. $\lambda_1 \gg \lambda_2 \gg \ldots \gg \lambda_n$. Note that all the $\lambda_i$ but $\lambda_1$ are guaranteed to be stable. This is the problem we have been working with so far.
+We make observations $\vec{x}[t] \cdot \vec{d}[t]$ where the $\vec{d}[t]$ are randomly chosen, and attempt to deduce $P$ and apply scalar control $u[t]$ to stabilize the system. The eigenvector basis $P$ is orthonormal but unknown to us, and the $\lambda_i$ are in decreasing order i.e. $\lambda_1 \gg \lambda_2 \gg \ldots \gg \lambda_n$. Note that all the $\lambda_i$ but $\lambda_1$ are guaranteed to be stable. This is the problem we have been working with so far. This problem is equivalent to having a randomized isometric transform on the control input a system with known eigenstructure, but without knowledge of it's eigenvalues.
+
+\section*{Angular Error of eigenvector estimates in high dimensions}
+
+Geometrically, having an eigenvector $\vec{v}_1$, it's estimate $\hat{v}_1$, and a vector onto which we project to $\vec{d}[t]$ per time step for each observation makes a triple of vectors that we can consider as bounding a tetrahedron in $n$-dimensional space. If we work in high dimensions, and if $\vec{d}[t]$ has random uniformly distributed direction, it is likely the case that $\vec{d}[t]$ is orthogonal to the eigenvector. If we consider the estimate and eigenvector to be static relative to each other (no updates, so as to make the problem easier), it would be nice to have an explicit expression or condition for when the system has a stable 'instantaneous eigenvalue' as a function of the projection vector's direction relative to the eigenvector and its estimate when controls are applied based on recovered magnitudes of the component of the state along the main eigenvector - and then after, when the system is on average stable as a function of how much the system is instantaneously stable.
+
+\section*{Probability of convergence of eigenvalues}
+
+$\Pr[e^{tX} \geq e^{ta}] \leq \frac{\mathrm{E}[e^{tX}]}{e^{ta}}$
+
+\section*{Variance}
+The approach is as follows: with some initial state $\vec{x}[0]$, keep observing additional states with no control applied, and consider the magnitude of the observed projections. We obtain the scalar observations
+\[
+    \vec{y} = \mat{\norm{\vec{x}[0] \cdot \vec{d}[0]} \\ \norm{A\vec{x}[0] \cdot \vec{d}[1]} \\ \norm{A^2 \vec{x}[0] \cdot \vec{d}[2]} \\ \vdots}
+\]
+Let's consider a slightly simpler problem, Assume that $A\vec{x} = \lambda \vec{x}$. So then we have
+\[
+    \vec{y}_1 = \mat{\norm{\vec{x}[0]} X_0 \\ \lambda \norm{\vec{x}[0]} X_1 \\ \lambda^2 \norm{\vec{x}[1]} X_2 \\ \vdots},
+\]
+where the $X_i$ are independent nonnegative random variables, representing the absolute value of the $x$-coordinate of a random unit vector.
+
+We take logs of all the entries of $\vec{y}_1$, to obtain
+\[
+    \vec{y}_2 = \mat{\log{\norm{\vec{x}[0]}} + \log{X_0} \\ \log{\norm{\vec{x}[0]}} + \log{X_1} + \log{\lambda} \\  \log{\norm{\vec{x}[0]}} + \log{X_2} + 2\log{\lambda} \\ \vdots} = \mat{ \log{\norm{\vec{x}[0]}} \\ \log{\norm{\vec{x}[0]}} \\ \log{\norm{\vec{x}[0]}} \\ \vdots} + \mat{\log{X_0} \\ \log{X_1} \\ \log{X_2} \\ \vdots} + \mat{0 \\ 1 \\ 2 \\ \vdots} \log{\lambda}.
+\]
+Using least squares, we aim to approximately solve the linear equation
+\[
+    A\vec{\beta} = \mat{1 & 0 \\ 1 & 1 \\ 1 & 2 \\ \vdots & \vdots} \vec{\beta} = \mat{\log{\norm{\vec{x}[0]}} \\ \log{\norm{\vec{x}[0]}} \\ \log{\norm{\vec{x}[0]}} \\ \vdots} + \mat{\log{X_0} \\ \log{X_1} \\ \log{X_2} \\ \vdots} + \mat{0 \\ 1 \\ 2 \\ \vdots} \log{\lambda}
+\]
+We wish to compute the variance of $\beta$. If the $X_i$ were all zero, then we would obtain a $\hat{\beta}$ that recovers $\log{\norm{\vec{x}[0]}}$ and $\log{\lambda}$ perfectly. Otherwise, we recover the approximation
+\[
+    \beta = (A^TA)^{-1}A^T \vec{y} \ne \hat{\beta}.
+\]
+We have
+\eqn{
+    && \Var{\beta} &= \Var{(A^TA)^{-1}A^T \vec{y}} \\
+    &&&= (A^TA)^{-1}A^T \Var{\vec{y}} A(A^TA)^{-1} \\
+    &&&= \Var{\vec{y}} (A^TA)^{-1}A^TA(A^TA)^{-1} \\
+    &&&= \Var{X_i} (A^TA)^{-1},
+}
+since the $X_i$ are independent with the same variance.
+
+Now, we will make an aymptotic estimate on the variance of $\beta$ (which we can refine later) to obtain a bound on the error of our estimate of $\lambda$. Observe that
+\[
+    A^TA = \mat{1 & 1 & \ldots \\ 0 & 1 & 2 & \ldots} \mat{1 & 0 \\ 1 & 1 \\ 1 & 2 \\ \vdots & \vdots} = \mat{\Theta(N) & \Theta(N^2) \\ \Theta(N^2) & \Theta(N^3)},
+\]
+so
+\[
+    (A^TA)^{-1} = \frac{1}{\Theta(N^4)} \mat{\Theta(N^3) & \Theta(N^2) \\ \Theta(N^2) & \Theta(N)} = \mat{\Theta(N^{-1}) & \Theta(N^{-2}) \\ \Theta(N^{-2}) & \Theta(N^{-3})}.
+\]
+Therefore, we find that
+\eqn{
+    && \Var{\beta} &= \mat{\Theta(N^{-1}\Var{X_i}) & \Theta(N^{-2}\Var{X_i}) \\ \Theta(N^{-2}\Var{X_i}) & \Theta(N^{-3}\Var{X_i})} \\
+    \thus \Var{\log{\lambda}} &= \Theta(N^{-3}\Var{X_i}).
+}
+
+Thus, we can use Chebyshev's inequality to obtain bounds on the error for $\log{\lambda}$, since our estimate for it is unbiased.
+
+\section*{Phrasing our system as observation uncertainty and distinction between phase and magnitude}
+TODO: Some simulations
+
+Considering that observations of the state in some random directions $\vec{d[t]}$ is akin to a time varying random output matrix $C[t]$, we are looking at a generalization of previous work on the scalar system:
+\eqn{
+&&x_{t+1} &= ax_t + u_t\\
+&&y_t &= z_tx_t\\
+&&u_t &= dy_t, d = \frac{a}{1+\sigma_z^2}\\
+}
+Where we are given knowledge of $y_t$ only, and must control the system. This is distinct from the versions of the problem we have been working on where we have what would be the equivalent of $z_t$ known to us (the $\vec{d}[t]$). The resulting bound for which systems are probabilistically stabilizable for the given linear law is for $a^2 < 1 + \frac{\mu_z^2}{\sigma_z^2}$, which comes from the expected evolution of the square state, which is by factor $\frac{a^2\sigma_z^2}{\mu_z^2 +\sigma_z^2}$. An improvement can be achieved by using a nonlinear controller with memory, which suggests that the optimal controller in the higher dimensional case will reflect this. Considering that what is obscured is magnitude that leads to these results on nonlinearity and memory being necessary (sufficient?) for optimality, we can examine higher dimensional systems analogous to the toy system below that do not obscure the magnitude but only phase:
+\eqn{
+&&x_{t + 1} &= ax_t + u_t\\
+&&y_t &= z_tx_t, z_t \in \{-1, 1\}
+}
+If we know some control effort leads us astray (doubling of the state), we have picked the wrong value for $z_t$, and can thus correct our previous action. Is this a usage of memory and nonlinearity, as we will have to scale by twice as much if we guessed in the wrong direction?  What this might look like in higher dimensions is that to preserve magnitude, we have a randomized square $C[t]$ matrix that is some random roto-reflection/unitary matrix. There is an $n-1$ dimensional space of directions we must search, and it is perhaps after at most $n$ "mistakes" that we can determine the state with memory. In the case of the full magnitude uncertainty, the nonlinear control law appears to reflect doing something based on the average, then correcting for this error based on the subsequent and past observations.
+
+\section*{Linear Control}
+Imagine that we are restricted to applying a vector linear control with no memory of the previous observations, but with knowledge of some symmetric $A$, such that
+\[
+    \vec{u}[t] = K\vec{d}[t]y[t] = K\vec{d}[t]\vec{d}[t]^T\vec{x}[t].
+\]
+Then our state equation becomes
+\[
+    \vec{x}[t + 1] = (A + K\vec{d}[t]\vec{d}[t]^T)\vec{x}[t].
+\]
+We would like to know when this system is stable in a probabilistic sense. First, let us look at the expectation of the new transition matrix, then stability in a second moment sense by looking at the expectation of the norm of the state at the next time step.
+
+First, let the $\vec{v}_i$ be eigenvectors of $A$ with corresponding eigenvalues $\lambda_i$, and let $\alpha_i[t]$ be the coordinates of the observation vector in the basis of eigenvectors.
+\[
+    \vec{d}[t] = \sum_{i} \alpha_i[t] \vec{v}_i.
+\]
+
+Using the dyadic decomposition of $A$ and $K$ in the vectors $\vec{v_i}$, with $\beta_i$ as the weights of the decomposition of $K$ (assuming that $K$ is also symmetric), our effective state matrix $\bar{A} $ can be examined, and we can take its expectation:
+\eqn{
+    && \bar{A}&= A + K\vec{d}[t]\vec{d}[t]^T \\
+    && &=\sum_i\lambda_i\vec{v_i}\vec{v_i}^T + \left(\sum_i\beta_i\vec{v_i}\vec{v_i}^T\right)\left(\sum_j\alpha_j[t]\vec{v_j}\right)\left(\sum_k\alpha_k[t]\vec{v_k}^T\right)\\
+    && &=\sum_i\lambda_i\vec{v_i}\vec{v_i}^T + \left(\sum_i\beta_i\alpha_i[t]\vec{v_i}\right)\left(\sum_j\alpha_j[t]\vec{v_j}^T\right)\\
+    && &=\sum_i(\lambda_i + \beta_i\alpha_i[t]^2)\vec{v_i}\vec{v_i}^T + \sum_{j\ne k}\beta_j\alpha_j[t] \alpha_k[t] \vec{v}_j \vec{v}_k^T \\
+    &&E[\bar{A}] &= \sum_i(\lambda_i + \frac{\beta_i}{n})\vec{v_i}\vec{v_i}^T\\
+}
+The expectation proceeds from the penultimate step by a symmetry argument - the coordinates of a uniform random direction on the unit sphere in any orthonormal basis maintains the same distribution. If the eigenvalues and order of the system is known (Which seems to be an issue, as we are trying to look at the large dimensional system in few major modes), we can affect the average dynamics with this control law. If we can set the largest eigenvalue to zero, we can push the state into the subspace orthogonal to the largest eigenvector, and perhaps recurse until the system is stable. Another observation is that as the true order of the system grows, our ability to influence it decreases on average, with only one measurement.
+
+Alternatively, consider the input $\vec{u}[t] = \vec{K}y[t] = \vec{K}\vec{d}[t]^T\vec{x}[t]$, where $\vec{K} = \sum_i\beta_i\vec{v_i}$ This would yield the new transition matrix:
+\eqn{
+&&\bar{A} &= A + \vec{K}\vec{d[t]}^T\\
+&& &= \sum_i\lambda_i\vec{v_i}\vec{v_i}^T + \left(\sum_j\beta_j\vec{v_j}\right)\left(\sum_k\alpha_k[t]\vec{v_k}^T\right)\\
+&& &=\sum_i(\lambda_i+\beta_i\alpha_i[t])\vec{v_i}\vec{v_i}^T + \sum_{j\ne k}\alpha_k[t]\beta_j\vec{v_j}\vec{v_k}^T 
+}
+
+If we take the expectation of the above, is it an impossibility result, because the mean zeroes out? Or would we have to do it for the magnitude? Also, general question, but how do we define zeroth-moment expectation for the vector case? Whether or not  $\vec{K}$ is static (some typical actuation vector $\vec{b}$ in the usual state space formulation) the expectation of the matrix always has unchanged eigenvalues.
+
+Next, let us examine the expectation of the square norm of the state, using the definition of $\bar{A} = A + K\vec{d}\vec{d}^T$. Call $\vec{d}\vec{d}^T = D$ (From experiment, it seems to be the case that $DKD$ has expectation $\frac{1}{n}K$. If this is untrue, the following work falls apart. Can we use a trace trick to prove this? http://andreweckford.blogspot.com/2009/09/trace-tricks.html)
+
+Observe what happens for a single time step.
+\eqn{
+&&\norm{\vec{x}[t+1]}^2 &= \norm{\bar{A}[t]\vec{x}[t]}^2\\
+&&E[\norm{\vec{x}[t+1]}^2]  &= \vec{x}[t]^TE[\bar{A}[t]^T\bar{A}[t]]\vec{x}[t]\\
+&& &= \vec{x}[t]^TE\left[\left(A + KD\right)^T\left(A + KD\right)\right]\vec{x}[t]\\
+&& &= \vec{x}[t]^TE\left[\left(A^T + D^TK^T\right)\left(A + KD\right)\right]\vec{x}[t]\\
+&& &=\vec{x}[t]^TE\left[\left(A + DK\right)\left(A + KD\right)\right]\vec{x}[t]\\
+&& &= \vec{x}[t]^TE\left[A^2 + DKA + AKD + DK^2D\right]\vec{x}[t]\\
+&& &= \vec{x}[t]^T\left(A^2 + \frac{1}{n}KA + \frac{1}{n}AK + \frac{1}{n}K^2\right)\vec{x}[t]\\
+}
+Factoring out the eigenvector matrices, we get that the eigenvectors of the middle matrix are:
+\[
+\lambda_i^2 + \frac{2}{n}\beta_i\lambda_i + \frac{1}{n}\beta_i^2
+\]
+
+The minimal value achievable for this quantity for choice of $\beta_i$ occurs for $\beta_i = -\lambda_i$, which yields the minimum as:
+\[
+\lambda_i^2\left(1 - \frac{1}{n}\right)
+\]
+Assuming that the other eigenvalues and eigenvectors are not learned and therefore not tampered with, the corresponding maximum growth per step for the magnitude given the feedback input that minimizes the largest eigenvalue will be something like:
+\[
+\max\left(\lambda_1\sqrt{1-\frac{1}{n}}, \{\lambda_{i\ne 1}\}\right)
+\]
+
+If we try to compute for arbitrary number of time steps, we get:
+\[
+\norm{\vec{x}[t]}^2 = \norm{\prod_t\bar{A}[t]\vec{x}[0]}^2
+\]
+
+The expectation cannot be straightforwardly evaluated since the product will involve "shells" of the same $d[t]$ going outwards, which are not independent and therefore not factorable with expectation.
+\eqn{
+&&E[\norm{\vec{x}[t]}^2] &= \vec{x}[0]^TE\left[\left(\prod_t\bar{A}[t]\right)^T\prod_t\bar{A}[t]\right]\vec{x}[0]\\
+}
+Just trying the control law of $\beta_i = -\lambda_in$ assuming the expectation factors (when it doesn't) performs terribly, but sometimes better than the above control law which minimizes the expected one-step eigenvalue so there must be some more to look at. Additionally, sometimes the system decays with $u = -\lambda_1\vec{v_1}\vec{v_1}^T\vec{d}[t]y[t]$ What sort of strategy would work if we made this less restrictive, and looked at for not just a single projection/observation, but more, and maybe even the limit case of our observations being vectors that are random roto-reflections of the state? The limitation in the scalar case came from not knowing the scalars $Z_n$ by which we observed the state. If we however know all the observation vectors, in the limit we don't have this similar issue, and we simply recover the state perfectly.
+
+\section*{Optimal control after one time step}
+Given a system $\vec{x}[t+1] = A\vec{x}[t] + \vec{u}[t]$ where $A$ is symmetric, and has eigenvalues with distributions $\mathcal{N}(\hat{\lambda_i}, \sigma_i)$, compute the optimal input from $\vec{x}[0]$ to $\vec{x}[1]$ that minimizes the square norm of the state, given that we have the observation $y[0] = \vec{d}[0]^T\vec{x}[0]$, where $\vec{d}[0]$ is uniformly drawn from the n-sphere.
+
+
+Let our system have the state transition
+\[
+    \vec{x}[t + 1] = A\vec{x}[0] + \vec{u}[t].
+\]
+$A$ is an unknown symmetric matrix whose eigenvalues $\lambda_i \sim N(\hat{\lambda}_i, \sigma_i)$ and whose eigenvectors form a random orthogonal basis. $\vec{x}[0]$ is unknown to us and drawn randomly from the unit sphere. However, we know that
+\[
+    \vec{y}[0] = \vec{d}[0]^T\vec{x}[0],
+\]
+so $\vec{x}[0]$ actually lies on a circle.
+
+We wish to apply a control $\vec{u}[0]$ that minimizes $E(\norm{\vec{x}[1]}^2)$. Clearly, such a control should be
+\[
+    \vec{u}[0] = -E(A\vec{x}[0]).
+\]
+
+Let $\vec{v}_i$ be the eigenvectors of $A$.
+
+We have
+\eqn{
+    && E(A\vec{x}[0]) &= E\left(\sum_i \lambda_i (\vec{x}[0]^T\vec{v}_i) \vec{v}_i \right)\\
+    &&&= \sum_i E(\lambda_i) E((\vec{x}[0]^T\vec{v}_i)\vec{v}_i),
+}
+since $\lambda_i$ and $(\vec{x}[0]^T\vec{v}_i)\vec{v}_i$ are independent for each $i$. Clearly,
+\[
+    E(\lambda_i) = \hat{\lambda}_i.
+\]
+Since $\vec{x}[0]$ is constrained to be uniformly distributed over a circle centered at $y[0]\vec{d}[0]$, we have that
+\eqn{
+    && E((\vec{x}[0]^T\vec{v}_i)\vec{v}_i) &= \int_{\vec{v}} E((\vec{x}[0]^T \vec{v}_i)\vec{v}_i \mid \vec{v}_i = \vec{v}) f_{\vec{v}_i}(\vec{v}) \, \diff \vec{v}_i \\
+    &&&= \int_{\vec{v}} y[0]\vec{d}[0] \vec{v}^T \vec{v} f_{\vec{v}_i}(\vec{v}) \, \diff \vec{v} \\
+    &&&= y[0]\vec{d}[0] \int_{\vec{v}} \vec{v}\vec{v}^T f_{\vec{v}_i}(\vec{v}) \diff \vec{v} \\
+    &&&= y[0]\vec{d}[0]E(\vec{v}_i\vec{v}_i^T).
+}
+Therefore, we have
+\eqn{
+    && E(A\vec{x}[0]) &= \sum_i \hat{\lambda}_i y[0] \vec{d}[0] E(\vec{v}_i\vec{v}_i^T) \\
+    &&&= \frac{1}{N}\sum_i \hat{\lambda}_i\vec{y}[0]\vec{d}[0],
+}
+so our optimal control should be
+\[
+    \vec{u}[0] = -\left(\frac{1}{N} \sum_i \hat{\lambda}_i\right) \vec{y}[0] \vec{d}[0].
+\]
+
+After applying this control, we can look at the expected value of the magnitude of $\vec{x}[1]$. We find that
+
+Question: Is there a way of applying entropy/information content to the random stuff?
+
+\section*{Conditions for Stability}
+When doing some simulations for the system $\mathcal{S}$ of fairly low dimensionality ($N \leq 10$) modeled by:
+\eqn{
+    &&\vec{x}[t+1] &= A\vec{x}[t] + \vec{u}[t]\\
+    &&A &=A^T\\
+    &&y[t] &= \vec{d}[t]^T\vec{x}[t]
+}
+
+It was observed in simulation that for small eigenvalues ($\lambda_i \leq \lambda_1 \leq 1.1$) the control law of $\vec{u}[t] = \vec{d}[t]y[t]$ was stabilizing. This seemed really mysterious, and I didn't understand why, so a lot of things were played with computationally to see how stability in one eigenspace is influenced by both the eigenvalue and eigenvectors of the resultant matrix under the perturbations of $A$ by $\vec{d}[t]\vec{d}[t]^T$.
+
+However, upon thinking about what is stabilizing, what is desirable is to place the eigenvalues of the system. Since $A$ is symmetric, ideally we can zero out the eigenvalue of concern by subtracting outer product basis terms when we consider it's dyadic decomposition:
+$$A - \lambda_1\vec{v_1}\vec{v_1}^T = \sum_{i=1}^N\lambda_i\vec{v_i}\vec{v_i}^T -\lambda_1\vec{v_1}\vec{v_1}^T = 0\cdot\vec{v_1}\vec{v_1}^T +  \sum_{i=2}^N\lambda_i\vec{v_i}\vec{v_i}^T$$
+
+The issue posed by our problem is that our information is limited according to the observation vector, $\vec{d}[t]$. So if we try to write an arbitrary feedback law using the observation $y[t]$ we see the following:
+$$\vec{u}[t] = \vec{k}y[t] \implies \vec{x}[t+1] = A\vec{x}[t] + \vec{k}y[t] = A\vec{x}[t] + \vec{k}\vec{d}[t]^T\vec{x}[t] = \left(A + \vec{k}\vec{d}[t]^T\right)\vec{x}[t]$$
+
+Assuming perfect knowledge of $\lambda_1$ and $\vec{v_1}$ (temporarily postulating the problem of learning and controlling as decoupled) the best we can do with this law is to set $\vec{k} = -\lambda_1\vec{v_1}$ and pray that $\vec{d}[t]$ somehow lands on $\vec{v_1}$. However, considering this impossibility, my next consideration was if the information from just one $\vec{d}[t]$ wasn't sufficient, why not try using multiple observations? We can try to construct the $\vec{v_1}$ from the $\vec{d}[t]$, which, due to the uniform distribution over the unit sphere probably form a basis, or mathematically, $\vec{v_1} = \sum_{t=0}^{N-1}\alpha_t\vec{d}[t]$ (Is the Johnson–Lindenstrauss lemma useful? if we don't want to wait until we have N measurements, what can we do?) This however, is not perfect, because we have not $N$ observations $z[t] =\vec{d}[t]^T\vec{x}[N-1]$ for a single state at $t = N-1$, but we have $y[t] = \vec{d}[t]^T\vec{x}[t]$ from times $t = 0$ to $t = N-1$ for many different states. So to try to proceed anyway, we guess that since the system's state in the direction of the eigenvector with largest eigenvalue grows fastest, we can approximately say
+$$z[t] = \vec{d}[t]^T\vec{x}[N-1] \approx \vec{d}[t]^T(\lambda_1^{N-1-t}\cdot\vec{x}[t]) = \lambda_1^{N-1-t}y[t]$$
+This either amounts to waiting for alignment, or knowing that the state is initially aligned. However, beyond this point, we now have a possible strategy, which is to say $\hat{z}[t] = \lambda_1^{N-1 - t}y[t]$, and thus we can approximate a observation feedback input of $\vec{u}[N-1] =-\lambda_1\vec{v_1}\vec{v_1}^T\vec{x}[N-1]$ by the following sum:
+$$\vec{v_1}^T\vec{x}[N-1] = \sum_{t=0}^{N-1}\alpha_t\vec{d}[t]^T\vec{x}[N-1] = \sum_{t=0}^{N-1}\alpha_tz[t]$$
+$$\sum_{t=0}^{N-1}\alpha_tz[t] \approx \sum_{t=0}^{N-1}\alpha_t\hat{z}[t] = \sum_{t=0}^{N-1}\alpha_t\lambda_1^{N-1 - t}y[t]$$
+
+Now, it is useful to consider the error incurred by proceeding by the assumption of alignment of the initial state $\vec{x}[0]$ with $\vec{v_1}$.
+
+One way to think explicitly consider this error is that we have not our perfect vector $\vec{v_1}^T$ recovered for feedback, but an approximation $\hat{v_1} = \alpha_\parallel\vec{v_1} + \alpha_\perp\vec{v_\perp}$ where $\vec{v_1}^T\vec{v_\perp} = 0$, and $\norm{\vec{v_\perp}} = 1$, and the vector $\hat{v_1}$ is of unit norm also, and so implying that $\alpha_\perp^2 + \alpha_\parallel^2 = 1$. (This might not be the right way of considering the error of the approximation made above, because the error is not only directional, but also multiplicative magnitude error as well. But this can perhaps be considered separately. TODO)
+
+To attempt to evaluate stability under such an input, we can compute the image of some state $\vec{x} = \beta_\parallel \vec{v_1} + \beta_\perp\vec{v_\perp}$ with square norm $\norm{\vec{x}}^2 = \beta_\parallel^2 + \beta_\perp^2$ under the action of the approximate feedback:
+\eqn{
+&&\vec{x}' &= \left(A - \lambda_1\vec{v_1}\hat{v_1}^T\right)\vec{x}\\
+&& &=\left(\sum_{i=1}^N\lambda_i\vec{v_i}\vec{v_i}^T - \lambda_1\alpha_\parallel\vec{v_1}\vec{v_1}^T - \lambda_1\alpha_\perp\vec{v_1}\vec{v_\perp}^T\right)(\beta_\parallel\vec{v_1}+\beta_\perp\vec{v_\perp})\\
+&& &=\lambda_1\beta_\parallel\vec{v_1} - \lambda_1\alpha_\parallel\beta_\parallel\vec{v_1} + \beta_\perp\sum_{i=2}^N\lambda_i\vec{v_i}\vec{v_i}^T\vec{v_\perp} - \beta_\perp\lambda_1\alpha_\perp \vec{v_1}\\
+&& &= \lambda_1(\beta_\parallel - \beta_\parallel\alpha_\parallel - \beta_\perp\alpha_\perp)\vec{v_1} + \beta_\perp\sum_{i=2}^N\lambda_i\vec{v_i}\vec{v_i}^T\vec{v_\perp}\\
+&&\max_{\vec{v_\perp}} \vec{x}' &= \lambda_1(\beta_\parallel - \beta_\parallel\alpha_\parallel - \beta_\perp\alpha_\perp)\vec{v_1} + \beta_\perp\lambda_2\vec{v_2}
+}
+
+Additionally to consider the viability of this strategy long term, we can also consider the transition every $N$ timesteps:
+$$\vec{x}[t + N] = \left(A -\lambda_1\vec{v_1}\hat{v_1}^T\right)A^{N-1}\vec{x}[t] = \left(A^N-\lambda_1\vec{v_1}\hat{v_1}^T\sum_{i=1}^N\lambda_i^{N-1}\vec{v_i}\vec{v_i}^T\right)\vec{x}[t]$$
+
+TODO: Finish computation for constraints on parameters above for 'one step' magnitude reduction. Discuss stability in the sense of N-1 multiplies by A to wait for data collection, then the jump down, and this lumping together as a reflection of cycling through this behavior every N time steps in a sort of system "downsampling"/increasing sampling time. Can expectation of the norm after one round be evaluated? Additionally, can we find the expectation of the $\hat{v}$ term as a function of/conditioned on the directional error in the initial state $\vec{x}[0]$ (deviation from $v_1$?)? After this, break our assumption of perfect $\lambda_1$ and $\vec{v_1}$, and see what happens. Can we consider control down-sampling for increased data sampling like a problem with inferring true things with both additive and multiplicative noise?
+
+\pagebreak
+\section*{Spinning after each time step with a known $A$ but unknown $\vec{x}[0]$}
+\subsection*{Scalar observations}
+Let the state transition be
+\eqn{
+    && \vec{x}[i + 1] &= \Psi[i](A\vec{x}[i] + \vec{u}[i]) \\
+    && y[i] &= \vec{d}[i]^T \vec{x}[i],
+}
+where $A$ is always known, $y[i]$, and $\vec{d}[i]$ are known at time step $i$, $\Psi[i]$ is an $n \times n$ random rotation matrix chosen independently at each timestep that is unknown to us, and $\vec{u}[i]$ is the $n$-dimensional control we apply at time step $i$.
+
+We will consider the greedy optimal control at each time step. In other words, at each time step $i$, what is the control input $\vec{u}_{greedy}[i]$ that minimizes $E(\norm{\vec{x}[i + 1]}^2)$? We know such a control should be
+\[
+    \vec{u}[i] = -E(A\vec{x}[i]).
+\]
+
+% If we find that $E(\norm{\vec{x}[i + 1]}^2)$ is purely a function of $E(\norm{\vec{x}[i]}^2)$, then we will have further shown that this greedy control is actually optimal over all time steps.
+
+Observe that the distribution of $\vec{x}[i]$ is rotationally symmetric, since it is generated by applying a random rotation matrix $\Psi[i - 1]$ on another distribution. Let $\vec{v}_i$ be the eigenvectors of $A$, and $\lambda_i$ its eigenvalues (all of which are known to us). First, we will compute
+\[
+    E(A\vec{x}[i] \mid \norm{\vec{x}[i]}).
+\]
+In other words, given the norm of $\vec{x}[i]$ and the observations $y[i]$ along the known $\vec{d}[i]$, we wish to compute the expected value of $A\vec{x}[i]$. If this expected value turns out to be independent of $\norm{\vec{x}[i]}$, then we will have in fact directly computed $E(\vec{x}[i])$ itself conditioned only on our observations.
+
+Since, from our observation $y[i]$, $\vec{x}[i]$ is constrained to be uniformly distributed over a $n-2$ dimensional circle centered at $y[i]\vec{d}[i]$ (formed by the intersection of the hyperplane of vectors satisfying the constraint determined by $\vec{y}[i]$ and the hypersphere of vectors with norm $\norm{\vec{x}[i]}$), we have that
+\eqn{
+    && E(A\vec{x}[i] \mid \norm{\vec{x}[i]}) &= AE(\vec{x}[i] \mid \norm{\vec{x}[i]}) \\
+    &&&= A(y[i]\vec{d}[i]).
+}
+Since this is independent of $\norm{\vec{x}[i]}$, we in fact have that
+\[
+    E(A\vec{x}[i]) = A(y[i]\vec{d}[i]),
+\]
+so our greedy control to minimize $\norm{\vec{x}[i + 1]}$ should therefore be
+\[
+    \vec{u}_{greedy}[i] = -A(y[i]\vec{d}[i]).
+\]
+Essentially, this control removes the component of $\vec{x}[i]$ along the direction $\vec{d}[i]$.
+
+We now claim that this control is in fact globally optimal. Specifically, we claim that applying this control input over $k$ time steps starting at $i=0$ will minimize $E(\norm{\vec{x}[k]}^2)$. Observe that, when applying greedy control,
+\eqn{
+    && E(\norm{\vec{x}[i+1]}^2) &= E(\norm{A\vec{x}[i] + \vec{u}_{greedy}[i]}^2) \\
+    &&&= E(\norm{A\vec{x}[i] - A(y[i]\vec{d}[i])}^2) \\
+    &&&= E(\norm{A(\vec{x}[i] - y[i]\vec{d}[i])}^2).
+}
+Recall that, regardless of the previous control strategies used, the distribution of $\vec{x}[i]$ will be rotationally symmetric. Imagine that $\norm{\vec{x}[i]}$ were known, so
+\eqn{
+    && E(\norm{\vec{x}[i+1]}^2 \mid \norm{\vec{x}[i]}) &= E(\norm{A(\vec{x}[i] - y[i]\vec{d}[i])}^2 \mid \norm{\vec{x}[i]}) \\
+    &&&= E(\norm{A(I - \vec{d}[i]\vec{d}[i]^T)\vec{x}[i]}^2 \mid \norm{\vec{x}[i]}) \\
+    &&&= E(\vec{x}[i]^T (I - \vec{d}[i]\vec{d}[i]^T) A^2 (I - \vec{d}[i]\vec{d}[i]^T) \vec{x}[i] \mid \norm{\vec{x}[i]}) \\
+    &&&= E\left(\Tr{\vec{x}[i]^T (I - \vec{d}[i]\vec{d}[i]^T) A^2 (I - \vec{d}[i]\vec{d}[i]^T) \vec{x}[i]} \mid \norm{\vec{x}[i]}\right) \\
+    &&&= E\left(\Tr{(I - \vec{d}[i]\vec{d}[i]^T) A^2 (I - \vec{d}[i]\vec{d}[i]^T) \vec{x}[i]\vec{x}[i]^T} \mid \norm{\vec{x}[i]}\right) \\
+    &&&= \Tr{E((I - \vec{d}[i]\vec{d}[i]^T) A^2 (I - \vec{d}[i]\vec{d}[i]^T) \vec{x}[i]\vec{x}[i]^T \mid \norm{\vec{x}[i]})} \\
+    &&&= \Tr{(I - \vec{d}[i]\vec{d}[i]^T) A^2 (I - \vec{d}[i]\vec{d}[i]^T)E(\vec{x}[i]\vec{x}[i]^T \mid \norm{\vec{x}[i]})} \\
+    &&&= \frac{\norm{\vec{x}[i]}^2}{n} \Tr{(I - \vec{d}[i]\vec{d}[i]^T) A^2 (I - \vec{d}[i]\vec{d}[i]^T)} \\
+    &&&= \frac{\norm{\vec{x}[i]}^2}{n} \Tr{A^2 (I - \vec{d}[i]\vec{d}[i]^T)} \\
+    &&&= \frac{\norm{\vec{x}[i]}^2}{n}\left(\norm{A}^2_F - \norm{A\vec{d}[i]}^2\right)
+}
+
+Therefore, a straightforward dynamic programming argument shows that $\vec{u}_{optimal}[i] = \vec{u}_{greedy}[i]$ at all time steps $i$.
+
+We can now also look at the stabilizability of this system. Consider a particular sequence of $\vec{d}[i]$ presented to us in advance. We have shown that
+\eqn{
+    && E(\norm{\vec{x}[1]}^2 \mid \norm{\vec{x}[0]}) &= \frac{\norm{\vec{x}[0]}^2}{n} \left(\norm{A}^2_F - \norm{A\vec{d}[0]}^2\right).
+}
+
+Thus, after two time steps,
+\eqn{
+    && E(\norm{\vec{x}[2]}^2 \mid \norm{\vec{x}[1]}) &= \frac{\norm{\vec{x}[1]}^2}{n} \left(\norm{A}^2_F - \norm{A\vec{d}[1]}^2\right) \\
+    \thus E(\norm{\vec{x}[2]}^2 \mid \norm{\vec{x}[0]}) &= \frac{E(\norm{\vec{x}[1]}^2 \mid \norm{\vec{x}[0]})}{n} \left(\norm{A}^2_F - \norm{A\vec{d}[1]}^2\right) \\
+    &&&= \left(\frac{\norm{A}^2_F - \norm{A\vec{d}[1]}^2}{n}\right)\left(\frac{\norm{A}^2_F - \norm{A\vec{d}[0]}^2}{n}\right) \norm{\vec{x}[0]}^2.
+}
+
+Similarly, after $k$ time steps,
+\[
+    E(\norm{\vec{x}[k]}^2 \mid \norm{\vec{x}[0]}) = \norm{\vec{x}[0]}^2 \prod_{i=0}^{k-1} \left(\frac{\norm{A}^2_F - \norm{A\vec{d}[i]}^2}{n}\right).
+\]
+
+If the $\vec{d}[i]$ were not given to us but were instead drawn uniformly from the unit sphere, we instead obtain
+\eqn{
+    && E(\norm{\vec{x}[k]}^2 \mid \norm{\vec{x}[0]}) &= \norm{\vec{x}[0]}^2 E\left(\prod_{i=0}^{k-1} \left(\frac{\norm{A}^2_F - \norm{A\vec{d}[i]}^2}{n}\right)\right) \\
+    &&&= \norm{\vec{x}[0]}^2 \prod_{i=0}^{k-1} E\left(\frac{\norm{A}^2_F - \norm{A\vec{d}[i]}^2}{n}\right).
+}
+For any particular $i$, observe that
+\eqn{
+    && E(\norm{A\vec{d}[i]}^2) &= \Tr{E(\vec{d}[i]^TA^2\vec{d}[i])} \\
+    &&&= \Tr{E(A^2\vec{d}[i]\vec{d}[i]^T)} \\
+    &&&= \frac{1}{n}\Tr{A^2} \\
+    &&&= \frac{1}{n}\norm{A}^2_F,
+}
+so
+\eqn{
+    && E(\norm{\vec{x}[k]}^2 \mid \norm{\vec{x}[0]}) &= \norm{\vec{x}[0]}^2 \prod_{i=0}^{k-1} E\left(\frac{\norm{A}^2_F - \norm{A\vec{d}[i]}^2}{n}\right) \\
+    &&&= \norm{\vec{x}[0]}^2 \left(\frac{n - 1}{n^2} \norm{A}^2_F\right)^{k}.
+}
+
+For the system to be stabilizable, $E(\norm{\vec{x}[k]}^2 \mid \norm{\vec{x}[0]})$ should approach $0$ as $k \to \infty$. Clearly, this occurs exactly when
+\eqn{
+    && \frac{n - 1}{n^2} \norm{A}^2_F &< 1 \\
+    \thus \frac{\sum_i \lambda_i^2}{n} &< 1 + \frac{1}{n - 1}.
+}
+
+\subsection*{Vector observations}
+Now, we will consider the case when we can see a vector projection of the state at each time step. Specifically, we will look at the system described by
+\eqn{
+    && \vec{x}[i + 1] &= \Psi[i](A\vec{x}[i] + \vec{u}[i]) \\
+    && \vec{y}[i] &= D[i]^T \vec{x}[i],
+}
+where the $D[i]$ are $n \times m$ matrices of rank $m$ that are known at time step $i$, the observation $\vec{y}[i]$ is of dimension $m$, and all other quantities are as stated before. Each $D[i]$ is chosen by drawing $m$ orthogonal vectors uniformly from the $n$-dimensional unit hypersphere.
+
+Observe that $D[i]\vec{y}[i]$ is the projection of $\vec{x}[i]$ onto the $m$-dimensional column space of $D[i]$.
+
+Assuming we know $\vec{y}[i]$ and are told $\norm{\vec{x}[i]}$ (so we know that $\vec{x}[i]$ is distributed uniformly on a hypersphere of a known radius), we have that
+\[
+    E(\vec{x}[i] \mid \norm{\vec{x}[i]} = D[i]\vec{y}[i],
+\]
+by a geometric argument.
+
+Thus,
+\eqn{
+    && E(A\vec{x}[i] \mid \norm{\vec{x}[i]}) &= AE(\vec{x}[i] \mid \norm{\vec{x}[i]}) \\
+    &&&= A(D[i] \vec{y}[i]).
+}
+Therefore, since $\vec{x}[i]$ is distributed in a rotationally symmetric manner,
+\[
+    E(A\vec{x}[i]) = A(D[i] \vec{y}[i]),
+\]
+so the control $\vec{u}_{greedy}[i]$ that minimizes $E(\norm{\vec{x}[i + 1]}^2)$ is therefore
+\[
+    \vec{u}_{greedy}[i] = -A(D[i] \vec{y}[i]).
+\]
+
+Thus, using this greedy strategy, an analogous calculation to before yields
+\eqn{
+    && E(\norm{\vec{x}[i + 1]}^2 \mid \norm{\vec{x}[i]}) &= E(\norm{A\vec{x}[i] + \vec{u}_{greedy}[i]}^2 \mid \norm{\vec{x}[i]}) \\
+    &&&= E(\norm{A(I - D[i]D[i]^T)\vec{x}[i]}^2 \mid \norm{\vec{x}[i]}) \\
+    &&&= E(\vec{x}[i]^T(I - D[i]D[i]^T)A^2(I - D[i]D[i]^T) \vec{x}[i] \mid \norm{\vec{x}[i]}) \\
+    &&&= E(\Tr{\vec{x}[i]^T(I - D[i]D[i]^T)A^2(I - D[i]D[i]^T) \vec{x}[i]} \mid \norm{\vec{x}[i]}) \\
+    &&&= E(\Tr{(I - D[i]D[i]^T)A^2(I - D[i]D[i]^T) \vec{x}[i]\vec{x}[i]^T} \mid \norm{\vec{x}[i]}) \\
+    &&&= \Tr{(I - D[i]D[i]^T)A^2(I - D[i]D[i]^T) E(\vec{x}[i]\vec{x}[i]^T \mid \norm{\vec{x}[i]})} \\
+    &&&= \frac{\norm{\vec{x}[i]}^2}{n}\Tr{(I - D[i]D[i]^T)A^2(I - D[i]D[i]^T)} \\
+    &&&= \frac{\norm{\vec{x}[i]}^2}{n}\Tr{A^2(I - D[i]D[i]^T)} \\
+    &&&= \frac{\norm{\vec{x}[i]}^2}{n}\Tr{A^2(I - D[i](D[i]^TD[i])^{-1}D[i]^T)}.
+}
+\note{Remove last line, left only for fun}
+
+Now, computing the expectation over $D[i]$, we see that
+\eqn{
+    && E(D[i]D[i]^T \mid \norm{\vec{x}[i]}) &= \frac{m}{n}I \\
+    \thus E(\norm{\vec{x}[i + 1]}^2 \mid \norm{\vec{x}[i]}) &= \frac{\norm{\vec{x}[i]}^2}{n} \Tr{A^2} \left(1 - \frac{m}{n}\right) \\
+    &&&= \frac{n - m}{n^2} \norm{A}_F^2 \norm{\vec{x}[i]}^2.
+}
+An analogous calculation to what was done in the case of scalar observations shows both that $\vec{u}_{optimal}[i] = \vec{u}_{greedy}[i]$ for all $i$ and that
+\[
+    E(D[k]D[k]^T \mid \norm{\vec{x}[o]}) = \norm{\vec{x}[0]}^2 \left(\frac{n - m}{n^2} \norm{A}_F^2\right)^{k}.
+\]
+
+Thus, the system is stabilizable exactly when
+\[
+    \norm{A}_F^2 = \frac{\sum_i \lambda_i^2}{n} < \frac{n}{n - m}
+\]
+
+A reality check verifies that this result is consistent what would be expected when $m = 0$ (when no useful control can be applied), $m = 1$ (the earlier scalar case), and $m = n$ (when the system should always be stabilizable).
+
+
 
 \end{document}
