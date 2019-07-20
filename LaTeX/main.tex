@@ -619,9 +619,7 @@ Thus, using this greedy strategy, an analogous calculation to before yields
     &&&= \Tr{(I - D[i]D[i]^T)A^2(I - D[i]D[i]^T) E(\vec{x}[i]\vec{x}[i]^T \mid \norm{\vec{x}[i]})} \\
     &&&= \frac{\norm{\vec{x}[i]}^2}{n}\Tr{(I - D[i]D[i]^T)A^2(I - D[i]D[i]^T)} \\
     &&&= \frac{\norm{\vec{x}[i]}^2}{n}\Tr{A^2(I - D[i]D[i]^T)} \\
-    &&&= \frac{\norm{\vec{x}[i]}^2}{n}\Tr{A^2(I - D[i](D[i]^TD[i])^{-1}D[i]^T)}.
 }
-\note{Remove last line, left only for fun}
 
 Now, computing the expectation over $D[i]$, we see that
 \eqn{
@@ -631,7 +629,7 @@ Now, computing the expectation over $D[i]$, we see that
 }
 An analogous calculation to what was done in the case of scalar observations shows both that $\vec{u}_{optimal}[i] = \vec{u}_{greedy}[i]$ for all $i$ and that
 \[
-    E(D[k]D[k]^T \mid \norm{\vec{x}[o]}) = \norm{\vec{x}[0]}^2 \left(\frac{n - m}{n^2} \norm{A}_F^2\right)^{k}.
+    E(x[k]^2 \mid \norm{\vec{x}[0]}) = \norm{\vec{x}[0]}^2 \left(\frac{n - m}{n^2} \norm{A}_F^2\right)^{k}.
 \]
 
 Thus, the system is stabilizable exactly when
@@ -641,6 +639,198 @@ Thus, the system is stabilizable exactly when
 
 A reality check verifies that this result is consistent what would be expected when $m = 0$ (when no useful control can be applied), $m = 1$ (the earlier scalar case), and $m = n$ (when the system should always be stabilizable).
 
+\section*{When $A$ is not known}
+Imagine applying the same control as above, but when $A$ is not known exactly. Specifically, imagine applying the control
+\[
+    \vec{u}[t] = -\hat{A} y[t] \vec{d}[t],
+\]
+when the system dynamics are described by
+\[
+    \vec{x}[t + 1] = \Psi[t](A\vec{x}[t] + \vec{u}[t])
+\]
+where $A \ne \hat{A}$. Thus,
+\eqn{
+    && \vec{x}[t + 1] &= \Psi[t](A\vec{x}[t] - \hat{A}y[t] \vec{d}[t]) \\
+    &&&= \Psi[t](A\vec{x}[t] - \hat{A}\vec{d}[t] \vec{d}[t]^T \vec{x}[t]) \\
+    &&&= \Psi[t](A - \hat{A}\vec{d}[t]\vec{d}[t]^T)\vec{x}[t]
+}
+Since the distribution of $\vec{x}[t]$ is rotationally symmetric, we have
+\eqn{
+    && E(\norm{\vec{x}[t + 1]}^2 \mid \norm{\vec{x}[t]}) &= E(\norm{(A - \hat{A}\vec{d}[t]\vec{d}[t]^T)\vec{x}[t]}^2) \\
+    &&&= E(\vec{x}[t]^T(A^T - \vec{d}[t]\vec{d}[t]^T\hat{A}^T)(A - \hat{A}\vec{d}[t]\vec{d}[t]^T)\vec{x}[t]) \\
+    &&&= E(\Tr{\vec{x}[t]^T(A^T - \vec{d}[t]\vec{d}[t]^T\hat{A}^T)(A - \hat{A}\vec{d}[t]\vec{d}[t]^T)\vec{x}[t]}) \\
+    &&&= E(\Tr{(A^T - \vec{d}[t]\vec{d}[t]^T\hat{A}^T)(A - \hat{A}\vec{d}[t]\vec{d}[t]^T)\vec{x}[t]\vec{x}[t]^T}) \\
+    &&&= \Tr{E((A^T - \vec{d}[t]\vec{d}[t]^T\hat{A}^T)(A - \hat{A}\vec{d}[t]\vec{d}[t]^T)\vec{x}[t]\vec{x}[t]^T)} \\
+    &&&= \Tr{(A^T - \vec{d}[t]\vec{d}[t]^T\hat{A}^T)(A - \hat{A}\vec{d}[t]\vec{d}[t]^T)} E(\vec{x}[t]\vec{x}[t]^T) \\
+    &&&= \frac{\norm{\vec{x}[t]}^2}{n} \Tr{(A^T - \vec{d}[t]\vec{d}[t]^T\hat{A}^T)(A - \hat{A}\vec{d}[t]\vec{d}[t]^T)}
+}
+Let $\Delta = A - \hat{A}$. Then the above can be simplified to
+\eqn{
+    &&&\phantom{==} \frac{\norm{\vec{x}[t]}^2}{n} \Tr{(\hat{A}^T + \Delta^T - \vec{d}[t]\vec{d}[t]^T\hat{A}^T)(\hat{A} + \Delta - \hat{A}\vec{d}[t]\vec{d}[t]^T)} \\
+    &&&= \frac{\norm{\vec{x}[t]}^2}{n} \Tr{((I - \vec{d}[t]\vec{d}[t]^T)\hat{A}^T + \Delta^T)(\hat{A}^T(I - \vec{d}[t]\vec{d}[t]^T) + \Delta)} \\
+    &&&= 
+}
+
+\section*{When $A$ is known but $\vec{d}[i]$ are not}
+Consider the system
+\eqn{
+    && \vec{x}[i + 1] &= a\vec{x}[i] + \vec{u}[i] \\
+    && y[i] &= \vec{d}[i]^T \vec{x}[i]
+}
+where $a$ is a known scalar and the $\vec{d}[i]$ are vectors drawn uniformly from the unit sphere but that are unknown to us.
+
+Observe that the distribution of $y[i]$ can be viewed as
+\[
+    y[i] = Z_n \norm{\vec{x}[i]},
+\]
+where the $Z_n$ are random variables with mean $0$.
+
+Now, imagine that we were further told the direction of $\vec{x}[0]$, which should only make the problem easier. Then our problem becomes the one-dimensional case, for which we know no linear strategy exists to stabilize it when $\abs{a} > 1$.
+
+If we remove the randomness entirely, however, then the problem becomes very easy. Specifically, imagine
+\[
+    \vec{y}[i] = \norm{\vec{x}[i]},
+\]
+so we are told the magnitude of our state at each timestep. Observe that in the absence of control input, 
+\[
+    \vec{y}[i] = a^i\norm{\vec{x}[0]},
+\]
+so without applying control we learn nothing about the system.
+
+However, by choosing $n$ initial control inputs appropriately, we can exactly determine $\vec{x}[0]$, and so drive the system exactly to zero, as follows:
+\note{Diagram}
+
+Now, we will consider the following observations:
+\[
+    \vec{y}[i] = \text{Uniform}(1 - \Delta, 1 + \Delta) \norm{\vec{x}[i]},
+\]
+where $\Delta < 1$ is some constant. In other words, we see the magnitude of the state only approximately. For simplicity, we will work in $2$-dimensions from now on, though I think the same approach should more or less work in higher dimensions.
+
+First, we will demonstrate that, by applying a single appropriate control, we can determine $\norm{\vec{x}[0] - \vec{r}}$ to within a factor of $1 \pm \Delta$ for arbitrary vectors $\vec{r}$. To do so, we will apply a control $\vec{u}[i]$ that has the combined effect of first cancelling out the effects of all prior controls, and then setting $\vec{x}[i + 1] = a^{i + 1}(\vec{x}[i] - \vec{r})$. Such a control clearly exists. But since $\vec{y}[i + 1] \approx \norm{\vec{x}[i + 1]}$ to within our desired multiplicative error, $\vec{y}[i + 1] / a^{i + 1}$ approximates $\norm{\vec{x}[0]}$ to within the same desired factor.
+
+We claim that we can stabilize this system for some $1 < a < a^*$, by making increasingly accurate estimates of $\vec{x}[0]$. Specifically, at time $t$, we will aim to bound $\vec{x}[0]$ within a box of side-length $r[t]$. If $r[t] / a^t \to 0$ as $t \to \infty$, then we can stabilize our system.
+
+Imagine that we know that $\vec{x}[0]$ lies in a box of side length $2$ at time $i$ centered at the origin (WLOG). We will aim to construct a box of side length $1$ in which it lies after a constant number of measurements. First, we will compute an approximation of its distance $y_1$ from $(0.5, 0.5)$.
+
+Specifically, if
+\[
+    y_1 < \frac{\sqrt{2}}{2} (1 - \Delta),
+\]
+then we know that $\vec{x}[0]$ cannot be in the third quadrant, and if
+\[
+    y_1 > \sqrt{2} (1 + \Delta),
+\]
+then we know that $\vec{x}[0]$ cannot be in the first quadrant.
+
+Thus, if $y_1$ lies outside the interval
+\[
+    \left[\frac{\sqrt{2}}{2} (1 - \Delta), \sqrt{2} (1 + \Delta)\right]
+\]
+then we can eliminate one of the quadrants as possibilities.
+
+Similarly, by making measurements $y_2$ about $(0.5, -0.5)$, we can possibly eliminate either the second or the fourth quadrants as possibilities.
+
+We will first consider the case where both $y_1$ and $y_2$ lie outside the intervals for which they provide inconclusive results. In such a case, we would know that $\vec{x}[0]$ lies within one of two adjacent quadrants - WLOG, let them be the first and second quadrants.
+
+Intuitively, it should not be possible to always distinguish exactly which quadrant $\vec{x}[0]$ lies within, as if it lies very near the boundary $x = 0$, the noise in our observations will prevent us from making any determination. Instead, we will try to determine which of three overlapping boxes it lies within, which can be done very easily for sufficiently small $\Delta$ after one more measurement. \note{Draw diagram}
+
+Now, we will consider the case where $y_1$ or $y_2$ lies inside the interval where they provide inconclusive results. For sufficiently small $\Delta$, it is clear that $\vec{x}[0]$ will lie within a box of side length $1$ centered at the origin. Thus, no matter what, for sufficiently small $\Delta$ we can reduce the side length of the box enclosing the possible values of $\vec{x}[0]$ by a factor of $2$ in at most $3$ observations, so $a^* = 2^{1/3}$.
+
+This result only holds for sufficiently small $\Delta$. To compute its precise value, the last constraint imposes the tightest bound (probably). \note{Diagram}
+
+Some geometry produces the bound
+\[
+    \Delta < -1 + \frac{2\sqrt{3}}{3} \approx 0.1547.
+\]
+
+\pagebreak
+\section*{Two controllers}
+Consider a vector system described as follows:
+\[
+    \vec{x}[i + 1] = A\vec{x}[i] + B_1\vec{u}_1[i] + B_2\vec{u}_2[i],
+\]
+where $\vec{u}_1[i]$ and $\vec{u}_2[i]$ are control inputs picked independently by two separate players with knowledge of the state $\vec{x}[i]$.
+
+Assume that both players have knowledge of the state transition matrix $A$, and can communicate prior to the reveal of $B_1$ and $B_2$.
+
+The goal for both players is to minimize the quantity
+\[
+    \sum_{i=0}^N \vec{x}[i]^TQ\vec{x}[i] + \vec{u}_1[i]^TR_1\vec{u}_1[i] + \vec{u}_2[i]^TR_2\vec{u}_2[i],
+\]
+where both players have knowledge of $Q$, $R_1$, and $R_2$. For simplicity, assume that $Q$ is symmetric and positive definite, so there exists an $M$ such that $Q = M^TM$.
+
+Assume that the columns of $B_1$ and $B_2$ are first randomly drawn from the unit sphere such that they are orthonormal.
+
+We will first consider the case when $N = 1$ - in other words, we only apply control input for one time step. Let these inputs be $\vec{u}_1$ and $\vec{u}_2$, and let $\vec{x} = \vec{x}[0]$, so
+\[
+    \vec{x}[1] = A\vec{x} + B_1\vec{u}_1 + B_2.
+\]
+Thus, the cost we aim to minimize is
+\[
+    J = (A\vec{x} + B_1\vec{u}_1 + B_2\vec{u}_2)^TQ(A\vec{x} + B_1\vec{u}_1 + B_2\vec{u}_2) + \vec{u}_1^TR_1\vec{u}_1 + \vec{u}_2^TR_2\vec{u}_2,
+\]
+which we can expand to obtain
+\eqn{
+    && J &= \vec{x}^TA^TQA\vec{x} + \vec{u}_1^TB_1^TQB_1\vec{u}_1 + \vec{u}_2^TB_2^TQB_2\vec{u}_2 \\ 
+    &&&+ 2\vec{x}^TA^TQB_1\vec{u}_1 + 2\vec{x}^TA^TQB_2\vec{u}_2 + 2\vec{u}_1^TB_1^TQB_2\vec{u}_2 \\
+    &&&+ \vec{u}_1^TR_1\vec{u}_1 + \vec{u}_2^TR_2\vec{u}_2.
+}
+Discarding the initial term, which does not depend on our control input, we obtain
+\eqn{
+    && J' &= \vec{u}_1^TB_1^TQB_1\vec{u}_1 + \vec{u}_2^TB_2^TQB_2\vec{u}_2 \\ 
+    &&&+ 2\vec{x}^TA^TQB_1\vec{u}_1 + 2\vec{x}^TA^TQB_2\vec{u}_2 + 2\vec{u}_1^TB_1^TQB_2\vec{u}_2 \\
+    &&&+ \vec{u}_1^TR_1\vec{u}_1 + \vec{u}_2^TR_2\vec{u}_2.
+}
+
+Consider the perspective of the first player. For them, $B_1$ is known, but $B_2$ and $\vec{u}_2$ are unknown random variables. They wish to choose their control $\vec{u}_1$ to minimize the expected value of $J'$, which is
+\eqn{
+    && \EX[J'] &= \vec{u}_1^TB_1^TQB_1\vec{u}_1 + \EX[\vec{u}_2^TB_2^TQB_2\vec{u}_2] \\ 
+    &&&\quad + 2\vec{x}^TA^TQB_1\vec{u}_1 + 2\vec{x}^TA^TQ\EX[B_2\vec{u}_2] + 2\vec{u}_1^TB_1^TQ\EX[B_2\vec{u}_2] \\
+    &&&\quad + \vec{u}_1^TR_1\vec{u}_1 + \EX[\vec{u}_2^TR_2\vec{u}_2] \\
+    &&&= \vec{u}_1^T(R_1 + B_1^TQB_1)\vec{u}_1 + 2\vec{x}^TA^TQB_1\vec{u}_1 \\
+    &&&\quad + \EX[\vec{u}_2^T(R_2 + B_2^TQB_2)\vec{u}_2] + 2(\vec{x}^TA^T + \vec{u}_1^TB_1^T)Q\EX[B_2\vec{u}_2] 
+}
+
+Discarding terms that do not depend on $\vec{u}_1$, we must ultimately minimize the quantity
+\eqn{
+    && J'' &= \vec{u}_1^T(R_1 + B_1^TQB_1)\vec{u}_1 + 2(B_1^TQA\vec{x})^T\vec{u}_1 + 2\EX[B_2\vec{u}_2]^TQB_1\vec{u}_1 \\
+    &&&= \vec{u}_1^T(R_1 + B_1^TQB_1)\vec{u}_1 + 2QB_1(A\vec{x} + \EX[B_2\vec{u}_2])^T \vec{u}_1
+}
+Let the optimal control for the first player be $\vec{u}_1^*$. It is known that
+\eqn{
+    && 0 &= (R_1 + B_1^TQB_1)\vec{u}_1^* + B_1^TQ(A\vec{x} + \EX[B_2\vec{u}_2]) \\
+    \thus \vec{u}_1^* &= -(R_1 + B_1^TQB_1)^{-1}B_1^TQ(A\vec{x} + \EX[B_2\vec{u}_2]).
+}
+Similarly, considering the problem from the perspective of the second player, we find their optimal control to be
+\[
+    \vec{u}_2^* = -(R_2 + B_2^TQB_2)^{-1}B_2^TQ(A\vec{x} + \EX[B_1\vec{u}_1]),
+\]
+with expectation taken over the second player's uncertainty in $B_1$ and $\vec{u}_1$. Since both players know they will be playing optimally, we obtain the two simultaneous equations
+\eqn{
+    && \vec{u}_1^* &= -(R_1 + B_1^TQB_1)^{-1}B_1^TQ(A\vec{x} + \EX_{B_2}[B_2\vec{u}_2^*]) \\
+    && \vec{u}_2^* &= -(R_2 + B_2^TQB_2)^{-1}B_2^TQ(A\vec{x} + \EX_{B_1}[B_1\vec{u}_1^*]).
+}
+Thus, we have
+\eqn{
+    && \EX_{B_2}[B_2\vec{u}_2^*] &= -\EX_{B_2}[B_2(R_2 + B_2^TQB_2)^{-1}B_2^TQ(A\vec{x} + \EX_{B_1}[B_1\vec{u}_1^*])] \\
+    &&&= -\EX_{B_2}[B_2(R_2 + B_2^TQB_2)^{-1}B_2^T]Q(A\vec{x} + \EX_{B_1}[B_1\vec{u}_1^*]).
+}
+Let
+\[
+    X_2 = \EX_{B_2}[B_2(R_2 + B_2^TQB_2)^{-1}B_2^T].
+\]
+Observe that $X_2$ does not depend on either $B_1$ or $B_2$, so it is known exactly by both players. Define $X_1$ in an analogous manner. Notice that both $X_1$ and $X_2$ are symmetric. Therefore,
+\[
+    \EX_{B_2}[B_2\vec{u}_2^*] = -X_2Q(A\vec{x} + \EX_{B_1}[B_1\vec{u}_1^*]).
+\]
+Similarly,
+\[
+    \EX_{B_1}[B_1\vec{u}_1^*] = -X_1Q(A\vec{x} + \EX_{B_2}[B_2\vec{u}_1^*]).
+\]
+Rearranging, we have that 
+\eqn{
+    && \mat{(X_1Q)^{-1} & I \\ I & (X_2Q)^{-1}} \mat{\EX_{B_1}[B_1\vec{u}_1^*] \\ \EX_{B_2}[B_2\vec{u}_2^*]} &= \mat{-A\vec{x} \\ -A\vec{x}}.
+}
 
 
 \end{document}
