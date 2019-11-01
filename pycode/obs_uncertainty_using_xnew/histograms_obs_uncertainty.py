@@ -48,8 +48,8 @@ def trials(a, u, w_param, x0_param, N, T):
         a_hat_new = np.divide(np.multiply(a_hat_t, z_t) + np.multiply(y_new - u_t, y_t), z_new)
         #print(a_hat_new) 
         #x0_hat_new = TODO
-        x_hat_new = y_new
-
+        #x_hat_new = y_new
+        x_hat_new = x_new
 
         # Add to trace
         x_trace.append(x_new)
